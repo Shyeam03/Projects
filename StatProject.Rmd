@@ -1,0 +1,512 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+# Global Warming - Data Analysis
+
+## Question of Interest
+
+**In recent decades we have seen an upward spike in global temperatures across various countries in the world and this has been causing serious problems with regard climate change. Global warming is becoming a massive problem day by day and many countries have there own scheme on dealing with global warming. One of the most important environmental issues discussed today is global warming. This is due to the impacts our warming climate has on crop yields, weather patterns, sea levels, wildfire incidents, and ecological systems. Global temperatures have risen at a faster rate than at any time since records began to be kept in the 1850s, and temperatures are expected to increase by another 1.8 to 5.8°C by the end of this century. Global warming is caused by the emission of greenhouse gases like carbon dioxide, methane, water vapor, chlorofluorocarbons and nitrous oxide. Developed countries have better schemes on dealing with global warming as compared to developing countries.First, I will try to check if there is an actual global warming happening across the globe and when this phenomenon had started to occur and then I will try to analyse the data on global land temperatures between a developing country like India and developed country like USA.**
+
+
+## Source and description of Data
+
+**Data set has been refined from a newer compilation, by the Berkeley Earth, which is affiliated with Lawrence Berkeley National Laboratory. The Berkeley Earth Surface Temperature Study combines 1.6 billion temperature reports from 16 pre-existing archives. It is nicely packaged and allows for slicing into interesting subsets (for example by country). They publish the source data and the code for the transformations they applied. They also use methods that allow weather observations from shorter time series to be included, meaning fewer observations need to be thrown away.**
+
+**In this data set, there have include several files:**
+
+**Global Land and Ocean-and-Land Temperatures (GlobalTemperatures.csv):**
+
+**Date: starts in 1750 for average land temperature and 1850 for max and min land temperatures and global ocean and land temperatures LandAverageTemperature: global average land temperature in celsius LandAverageTemperatureUncertainty: the 95% confidence interval around the average LandMaxTemperature: global average maximum land temperature in celsius LandMaxTemperatureUncertainty: the 95% confidence interval around the maximum land temperature LandMinTemperature: global average minimum land temperature in celsius LandMinTemperatureUncertainty: the 95% confidence interval around the minimum land temperature LandAndOceanAverageTemperature: global average land and ocean temperature in celsius LandAndOceanAverageTemperatureUncertainty: the 95% confidence interval around the global average land and ocean temperature Other files include:**
+
+**Global Average Land Temperature by Country (GlobalLandTemperaturesByCountry.csv) Global Average Land Temperature by State (GlobalLandTemperaturesByState.csv) Global Land Temperatures By Major City (GlobalLandTemperaturesByMajorCity.csv) Global Land Temperatures By City (GlobalLandTemperaturesByCity.csv) The raw data comes from the Berkeley Earth data page.**
+
+
+## Plotting Libraries
+
+*I am using high charter and ggplot2 as my primary plotting libraries. I had to use high charter because I was unable to accommodate many countries in the x axis and it was becoming difficult to read and interpret the graph properly. High charter creates interactive plots and we can see our data when we hover our cursor on the plots. High charter can be interactive only in html pages and when these plots are knitted to a pdf they produce a still image like ggplot2. I recommend viewing this document in html rather than pdf.*
+
+```{r}
+data_city<- read.csv("GlobalLandTemperaturesByCity.csv")
+data_country<- read.csv("GlobalLandTemperaturesByCountry.csv")
+GlobalLandTemperaturesByState<- read.csv("GlobalLandTemperaturesByState.csv")
+GlobalTemperatures<- read.csv("GlobalTemperatures.csv")
+
+```
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(viridis)
+library(tidyr)
+library(highcharter)
+library(webshot)
+library(ggmap)
+library(lubridate)
+library(readr)
+library(ggbeeswarm)
+library(gridExtra)
+```
+
+
+```{r}
+data_city$dt <- as.Date(data_city$dt)
+data_city$year <- format(data_city$dt,"%Y")
+data_city$month <- format(data_city$dt,"%m")
+data_country$dt <- as.Date(data_country$dt)
+data_country$year <- format(data_country$dt,"%Y")
+data_country$month <- format(data_country$dt,"%m")
+```
+
+
+## Average Country Temperatures
+
+**Before we dive into global warming lets chart the average temperatures of different countries across the world. This will give us an idea about the temperature variations across the globe. We can later figure out how global warming has affected the temperatures of the countries.**
+
+
+**The temperatures are recorded in the data set global land temperatures by country and we can chart them in descending order in order to get the countries with the highest average temperature first. I have used the package high charter to plot this graph with temperatures on the y axis and the countries in the x-axos.**
+
+
+```{r}
+data_g <- data_country%>%group_by(Country)%>%summarize(Temperature =mean(AverageTemperature,na.rm=T))%>%arrange(desc(Temperature))
+data_g <-data_g%>%filter(!is.na(Temperature))
+
+hchart(data_g,type="column",hcaes(x = Country, y = Temperature, color = Temperature))%>%hc_title(text = "Average Country Temperatures") %>%
+hc_add_theme(hc_theme_google())
+```
+
+*The average countries temperature chart gives us insight into how temperatures vary across different countries. We can see that the African countries have the highest average temperatures among all the countries as they are near to or the equator is passing through them. The tropical countries are placed in the middle of the graph as they are located between the equator and the poles and the poles. We can see that Denmark, Russia are the coldest countries as they are near to the poles of the earth.*
+
+
+
+## Is There a Global Warming ?
+
+**We can use the data in Global temperatures.csv to plot a graph which can help us answer this question. The below code plots a graph with the years in x axis and the temperature in y axis.**
+
+
+```{r}
+data_global <- GlobalTemperatures
+data_global$dt <- as.Date(data_global$dt)
+data_global$year <- format(data_global$dt,"%Y")
+data_world <- data_global%>%group_by(year)%>%summarize(Avg_Temp=mean(LandAverageTemperature,na.rm=T))%>%filter(Avg_Temp>6.5)
+data_world$year <- as.numeric(data_world$year)
+
+ggplot(data_world, aes(x=year, y=Avg_Temp,color=Avg_Temp))+
+  geom_point()+
+   scale_color_viridis(option = "B")+
+  geom_smooth(method = "lm")+
+  theme(axis.line = element_line(color = "orange",size=1))+
+  scale_x_continuous(breaks = seq(1750, 2013, by = 20))+
+  scale_y_continuous()+
+  theme(panel.background=element_blank())+
+  theme(legend.position = "bottom",axis.title = element_blank(),
+                     axis.text = element_text(size = 10,face="bold"),
+        plot.title = element_text(size=11,face = "bold")) + 
+  ggtitle("Global Land Average Temperature",subtitle = "1750 to 2013 ") 
+```
+
+
+*This graph illustrates the change in global surface temperature relative to 1750-2015 average temperatures. All of the hottest years have occurred since 2000,We can see from the graph that there has been a steady increase in global land average temperatures from the 1700's. We can also see that the temperatures have really started to increase after 1980's and there has been a significant rise in temperatures since then. There has almost been a 3 degree increase in the global land average temperatures from the 1700's and it is evident from the data that this trend will continue in the coming years.*
+
+
+
+## Does this occur in all the months ?
+
+**We can use the data in Global temperatures.csv to plot a graph which can help us answer this question. The below code plots multiple graphs faceted by months and showcases the average rise in temperature in each month. It has years on the x axis and average land temperature on y axis.**
+
+
+```{r}
+monthly_rise <- data_global%>%mutate(LandMinTemperature = as.numeric(LandMinTemperature),
+         LandMaxTemperature = as.numeric(LandMaxTemperature),
+         LandAndOceanAverageTemperature = as.numeric(LandAndOceanAverageTemperature),
+         Years = year(dt),
+         monthDt = month(dt),
+         decadeDt = round(year(dt),-1),
+         monthNames = format(dt,"%b"))
+
+
+monthNames = format(as.Date(paste0('2000-',1:12,'-01'),'%Y-%m-%d'),"%b")
+ggplot(data=monthly_rise %>% filter(between(monthDt,1,12)),aes( x=Years,
+                        y=LandAverageTemperature,
+                        colour=LandAverageTemperature)) +
+    geom_point(alpha=0.1) +
+    theme(panel.background = element_rect(fill='white'),plot.title = element_text(size=11,face = "bold")) +
+    facet_wrap(~monthDt)+
+    scale_color_viridis()+
+    ggtitle("Monthly Rise In Temperatures", subtitle = '1750 to 2013')
+```
+
+
+*We can clearly see from the graph that global warming is happening in all the months in an year. There has been a significant rise in temperatures across all the months from 1750 to 2015. The temperatures from October to April months have significantly risen compared to the other months over the years.*
+
+
+
+## Min, Avg and Max Land Temperature
+
+**We can use the data in Global temperatures.csv to plot a graph which can help us see the Min, Max and average temperaturs across the globe. The below code plots a graph with the years in x axis and the temperature in y axis.**
+
+
+```{r}
+data_globe <- data_global%>%group_by(year)%>%summarize(max=max(LandAverageTemperature,na.rm=T),min=min(LandAverageTemperature,na.rm=T),Avg_Temp=mean(LandAverageTemperature,na.rm=T))
+
+data_globe <- gather(data_globe,level,Temp, 2:4)
+
+ggplot(data_globe, aes(x=year, y=Temp,colour=Temp,group=level))+
+  geom_line()+
+   scale_color_viridis(option="B")+
+  scale_x_discrete(breaks = seq(1750, 2013, by = 40))+
+  theme(panel.background=element_blank())+
+  theme(legend.position = "bottom",axis.title = element_blank(),
+                     axis.text = element_text(size = 8,face="bold"),
+        plot.title = element_text(size=11,face = "bold")) + 
+  ggtitle("Min, Avg and Max Land Temperatures",subtitle = "1750 to 2013 ") 
+```
+
+
+*This graphs gives us much more depth into the minimum, average and maximum temperatures across the globe from 1750 to 2015.We can see a steady increase in all the temperatures over the years.*
+
+
+
+## Is Global warming impacting all countries the same?
+
+**We can try to analyze the impact of global warming by analyzing the change in average temperature from around 1875 to 2013. This will give us an idea on which countries have experienced most change over the years. The chart has plotted by from the data in Global average temperatures by country. The x-axis has countries and the y axis has the temperature.**
+
+
+```{r}
+
+data_change <- data_country%>%filter(year=='1875'|year=='2012')%>%group_by(Country,year)%>%summarize(temp=mean(AverageTemperature))%>%spread(year,temp)
+
+data_change$change <- data_change$`2012`- data_change$`1875`
+data_change <- data_change%>%filter(!is.na(change))%>%arrange(desc(change))%>%head(n=55)
+
+
+highchart() %>% 
+  hc_chart(type = "column") %>% 
+  hc_title(text = "Countries with Highest Change in Average Temperature") %>% 
+  hc_xAxis(categories = data_change$Country) %>% 
+  hc_add_series(data = data_change$change,
+                name = "Change in Temperature",colorByPoint = TRUE)%>%
+ hc_add_theme(hc_theme_google())
+```
+
+
+*From the graph we can clearly see that Canada, Ukraine have experienced most change in average temperature while countries like Italy and Norway have the least change in average temperature. This change in average might be due to global warming but we can't outright rule out other reasons for this change hence there is no clear evidence on why different countries have different change in average temperatures over the years.*
+
+
+
+# Analyzing Global Warming in Developing and Developed Nations
+
+**Each Country has its own way of dealing with global warming. In this comparison I am trying to compare how global warming has affected India as well as USA. India has a very huge population compared to USA and less land mass. USA on the other hand is almost 3 times as large as India but has 3 times less population too. It would be interesting to see how global warming has impacted these two countries.**
+
+
+
+# India
+
+
+
+## Plotting temperature rise in India 
+
+
+
+**We can use the data in Global temperatures by country and plot a graph to see the average rise in temperature in India over the last few centuries.The below code plots a graph with the years in x axis and the temperature in y axis.**
+
+```{r}
+data_ind = data_country%>%filter(Country=="India")
+
+data_ind <- data_ind%>%group_by(year)%>%summarize(Avg_Temp=mean(AverageTemperature,na.rm=T))%>%filter(Avg_Temp>21)
+data_ind <-data_ind%>%filter(!is.na(Avg_Temp))
+data_ind$year <- as.numeric(data_ind$year)
+
+ggplot(data_ind, aes(x=year, y=Avg_Temp,color=Avg_Temp))+
+  geom_point()+
+   scale_color_viridis(option = "B")+
+  geom_smooth(method = "lm")+
+  theme(axis.line = element_line(color = "orange",size=1))+
+  scale_x_continuous(breaks = seq(1750, 2013, by = 15))+
+  scale_y_continuous(breaks = seq(18,27,by=1))+
+  theme(panel.background=element_blank())+
+  theme(axis.title = element_blank(),axis.text.x = element_text(angle=60, hjust=1),
+                     axis.text = element_text(size = 12,face="bold"),
+        plot.title = element_text(size=16,face = "bold")) + 
+  ggtitle("Average Temperature increasing in india",subtitle = "1796 to 2013 ")  
+
+```
+
+*From the graph it is clear that there has been a steady rise in temperature over the years from late 1700's to present. We can see that the average temperature points plotted after the 1990's have significantly more average temperature compared to the other points. This implies that global temperatures have increased dramatically in India during the internet boom and with innovation of new technologies after the 1990's. *
+
+
+
+## Monthly Temperature in India
+
+
+**We can try to plot the monthly rise in temperature in India over the last centuries and compare it to the current monthly temperature in India. This will give us an idea on which months have seen the highest increase in temperature in a year.**
+
+```{r}
+data_in<-data_country %>%filter(!is.na(AverageTemperature))%>% filter(Country=="India")%>%group_by(month)
+
+ggplot(data_in,aes(month,AverageTemperature,color=as.numeric(year))) + 
+  geom_jitter(size=1) +
+  scale_color_viridis(option="B")+
+  theme(axis.line = element_line(color = "orange",size=.75))+
+          theme(panel.background=element_blank())+
+      scale_x_discrete()+labs(color="year") +
+     theme(axis.text = element_text(size = 10,face="bold"),
+        plot.title = element_text(size=17,face = "bold")) + 
+  ggtitle("Monthly Temperature in India") 
+```
+*The hottest months in India are the months of May and June and the coldest months are the months of December and January. We can see that there has been a steady increase in temperature in all the months from 1800's till the 2000's.*
+
+
+
+## Min, Avg and Max Temperature in India
+
+
+
+**We can try to see the rise in the minimum , maximum and the average temperatures in India over the last few centuries. We can plot a graph with the years in the x axis and the temperature in the y-axis.**
+
+```{r}
+data_india = data_country%>%filter(Country=="India")
+data_india <- data_india%>%group_by(year)%>%summarize(max=max(AverageTemperature),min=min(AverageTemperature),Avg_Temp=mean(AverageTemperature,na.rm=T))
+data_india <- gather(data_india,level,Temp, 2:4)
+data_india <-data_india%>%filter(!is.na(Temp))
+
+ggplot(data_india, aes(x=year, y=Temp,colour=Temp,group=level))+
+  geom_line()+
+   scale_color_viridis(option = "B")+
+  scale_x_discrete(breaks = seq(1750, 2013, by = 40))+
+  theme(panel.background=element_blank())+
+  theme(legend.position = "bottom",axis.title = element_blank(),
+                     axis.text = element_text(size = 12,face="bold"),
+        plot.title = element_text(size=16,face = "bold")) + 
+  ggtitle("Min, Avg and Max Temperature in India",subtitle = "1796 to 2013 ") 
+```
+
+*This graphs gives us much more depth into the minimum, average and maximum temperatures in India from 1800's to 2000's.We can see a steady increase in all the temperatures over the years.*
+
+
+
+## Average temperature of major cities in India
+
+
+**Majority of any country's population is located in major cities. Lets look at th data in global temperatures by major city and try to analyze the average temperature in major cities. India's major cities are Madras, Chennai, Hyderabad, Bombay, Bangalore, Delhi, Calcutta, Guwahati, Kochi. I am trying to create a density graph with average temperatures of major cities. The x axis- contains the average temperatures.**
+
+```{r warning=TRUE}
+ClimateCityIndia <- data_city[data_city$Country=="India",]
+Major_Cities<- c("Madras","Hyderabad", "Bombay", "Bangalore" , "Delhi" ,"Calcutta","Guwahati","Kochi")
+
+df<-ClimateCityIndia %>% filter(City %in% Major_Cities)  
+
+
+ggplot(df,aes(AverageTemperature,label=paste(City,""))) + geom_density(fill="red") +
+  facet_grid(City ~.) +
+  ylab("")+ 
+  ggtitle("Density plot of average temperatures")+
+  geom_text(aes(0,0.2),hjust=0.1,color="black")+
+  theme(text = element_text(color = '#3A3F4A'),
+        axis.text.y = element_blank(),axis.ticks.y = element_blank(),
+        axis.line.y = element_blank(),strip.background = element_blank(),
+        strip.text.y = element_blank(),axis.line.x = element_blank(),
+         plot.background = element_rect(fill = "#EFF2F4"),
+        plot.title = element_text(size = 14, face = "bold", colour = "gray20", vjust = -1))
+```
+
+*From the graph we can see the average temperatures of major India cities and how these the temperatures vary in a particular year.*
+
+
+
+## How has global warming impacted major cities in India ?
+
+
+
+**As seen from the above graph we have an idea of the average temperatures in major cities across India. The below code outputs a graph which will demonstrate how temperatures have increased over the years in these major cities. The graph contains years on the x-axis and temperatures in y axis.**
+
+```{r}
+Major_Cities<- c("Madras","Hyderabad", "Bombay", "Bangalore" , "Delhi" ,"Calcutta","Guwahati","Shillong","Surat","Warangal")
+
+ClimateCityIndia <- data_city[data_city$Country=="India",]
+ClimateCityIndia$dt <-as.Date(ClimateCityIndia$dt)
+ClimateCityIndia$Year <- format(ClimateCityIndia$dt,"%Y")
+ClimateCityIndia$Month <- format(ClimateCityIndia$dt,"%m") 
+
+  ClimateCityIndia %>% filter(City %in% Major_Cities) %>% group_by(City,Year) %>% summarise(avg_temp= mean(AverageTemperature)) %>% ggplot(aes(Year,avg_temp,color=avg_temp)) + 
+    geom_point() +
+  scale_x_discrete( breaks = c(1796,2013))+ scale_color_viridis(option="B")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.spacing = unit(0.6, "lines"),legend.position = "top",
+        legend.text=element_text(size=8),
+        panel.grid.major.y = element_blank(),panel.grid.minor.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.background = element_rect(fill = "#EFF2F4"),
+        legend.key.height = unit(10, "pt"),
+        legend.key.width = unit(70, "pt"))+
+        ggtitle("Temperature Change over the last two centuries",subtitle = "Indian Cities")+
+         ylab("Temperature in Celsius")+labs(color="Temperature")+
+facet_grid(~City )
+```
+
+*From the graph it is clearly evident that all the major cities have experienced a significant rise in temperatures over the years. All the cities have experienced an average increase of 2 degree Celsius from the 1800's till the 2000's. The cities present in the northern part of India have experienced the same rise in temperature compared to the cities in the southern part of India.*
+
+
+## Global warming summary India
+
+
+
+**India is a tropical country and it is close to the equator hence it gets very hot during the summer months and has pleasant winter months. From the above data and the graphs it can be clearly seen that India is experiencing an increase in average temperature from the early 1800's. There has been a steady increase in temperature from the early 1800's and the rise in temperatures is expected to increase over the coming years. We can see that there has been a 2 degree increase in the average temperature in India. The temperatures in each month have increased making the summers even more hot. There has been a rise in the minimum, maximum and average temperatures  also. All the major cities have also seen a similar trend.**
+
+
+# United States of America
+
+
+## Plotting temperature rise in USA
+
+
+
+**We can use the data in Global temperatures by country and plot a graph to see the average rise in temperature in United STates over the last few centuries.The below code plots a graph with the years in x axis and the Average temperature in y axis.**
+
+```{r}
+climate <- read.csv("GlobalLandTemperaturesByState.csv")
+climate$dt <- as.Date(climate$dt)
+climate$Year <- format.Date(climate$dt,format = "%Y")
+climate$Month <- format.Date(climate$dt,format = "%m")
+climate.usa <- climate %>% filter(Country == 'United States')
+climate.usa %>% filter(Year >=1849) %>% group_by(Year) %>% summarise(Avg.Temp = mean(AverageTemperature,na.rm = T)) %>%
+  ggplot(aes(x=Year,y=Avg.Temp,col= Avg.Temp))+
+  geom_point()+
+  geom_smooth(aes(group = 1))+
+  scale_color_continuous(low = "sky blue",high = "red")+
+  scale_x_discrete(breaks = seq(1849,2012,10))+
+  theme(panel.background = element_blank(),
+        legend.position = "bottom")+
+  labs(title = "Year Wise Average Temperature in USA") 
+```
+
+*The Average temperature in the United states during the 1850's was around 10 degrees but this has slowly started to rise and we can see that the average temperatures in the 2000's is around 12 degrees. United states has experienced a 2 degree increase in average temperature over the century.*
+
+## Monthly Temperature in United States
+
+
+
+**We can try to plot the monthly rise in temperature in USA over the last centuries and compare it to the current monthly temperature in USA This will give us an idea on which months have seen the highest increase in temperature in a year.**
+
+```{r}
+mea_c <- c("United States")
+mea<-data_country %>%filter(Country %in% mea_c)%>%group_by(year,Country)%>%mutate(no=length(year))%>%filter(no==12)%>%arrange(month)
+
+ggplot(mea,aes(month,AverageTemperature, group=year,color =as.numeric(year))) + geom_line(alpha= 0.5) +
+  theme(axis.line = element_line(color = "orange",size=1))+
+      theme(panel.background=element_blank())+ scale_color_viridis(option="B")+
+      scale_x_discrete()+labs(color="year") +
+    xlab("Month")+ylab("Average Temperature")+
+  theme(axis.text = element_text(size = 10,face="bold"),
+        plot.title = element_text(size=16,face = "bold")) + 
+  ggtitle("Average Temperature increasing in United States") 
+```
+
+*There is an increase in temperatures across all the months from the 1800's and the hottest is July in the united states and the coldest month is January.*
+
+
+## USA-States
+
+
+
+**Lets try to look at the rate of change of temperature in different states in the America. The below graph outputs the united states map and gives information on which states have experienced the most increase in temperatures.**
+
+```{r}
+## 1849
+
+avg.temp1849 = climate.usa %>% filter(Year == 1849) %>% group_by(State) %>% summarise(avg.temp.1849 = mean(AverageTemperature,na.rm = T))
+usa.map = map_data("state")
+a= unique(usa.map$region)
+avg.temp1849$State = tolower(avg.temp1849$State)
+avg.temp1849$State[11] = a[10]
+usa.map = merge(x=usa.map,y=avg.temp1849,by.x = "region",by.y = "State",all.x = TRUE)
+
+## 2012
+
+avg.temp2012 = climate.usa %>% filter(Year == 2012) %>% group_by(State) %>% summarise(avg.temp.2012 = mean(AverageTemperature,na.rm = T))
+avg.temp2012$State = tolower(avg.temp2012$State)
+avg.temp2012$State[11] = a[10]
+usa.map = merge(x=usa.map,y=avg.temp2012,by.x = "region",by.y = "State",all.x = TRUE)
+usa.map$change2012 <- (usa.map$avg.temp.2012 - usa.map$avg.temp.1849)*100/usa.map$avg.temp.1849
+
+USA_map <- ggplot() + geom_polygon(data = usa.map,aes(x=long,y=lat,group = group,fill = change2012),col = "white")+
+  scale_fill_continuous(low="sky blue",high = "red",limits = c(-0.15,122),name = "Percentage Change in Average Temperature")+
+  theme_nothing(legend = T)+
+  theme(legend.position = "bottom")+
+  labs(title = "United States of America")+
+  coord_map("albers",  at0 = 45.5, lat1 = 29.5)
+USA_map
+```
+*We can clearly see that the Percentage change is increasing year by year. Also, if we notice the percentage change in Northern states is comparatively higher than southern States.The northern states have a higher increase in the temperatures compared to the southern states. It seem North Dakota and minnesota have the highest change in average temperature while California and Florida have the least change in average temperature.*
+
+
+## Northern VS Southern States
+
+
+
+**As there a divide in the northern and southern states. Lets compare northern states to southern states. The below code outputs a barplot of the northern states North Dakota and Minnesota and compares it to the southern states California and Florida.**
+
+```{r}
+climate.usa %>% filter(Year %in% c(1849,2012),State %in% c("Florida","North Dakota","California","Minnesota")) %>% group_by(Year,State) %>% summarise(Avg.Temp = mean(AverageTemperature)) %>%
+  ggplot(aes(x=State,y=Avg.Temp))+
+  geom_bar(aes(fill = Year),stat = "identity",position = "dodge")+
+  scale_y_continuous(expand = c(0,0),limits = c(0,25))+
+  theme_bw()+
+  theme(legend.position = "bottom",
+        legend.key.width = unit(.2,"cm"))+
+  labs(title = "Comparision" ,subtitle = "Average Temperature Comparison of 2 Southern and 2 Northern States")
+```
+
+*We can see that the change in Northern States (Minnesota and North Dakota) is significantly more than the change in Southern States (California and Florida).*
+
+
+##  How has global warming impacted major cities in USA ?
+
+
+
+**As seen from the above graph we have an idea of the average temperatures in major cities across India. The below code outputs a graph which will demonstrate how temperatures have increased over the years in these major cities. The graph contains years on the x-axis and temperatures in y axis.**
+
+```{r}
+Major_Cities<- c("Baltimore","Columbus", "New York", "Denver" , "Miami" ,"Boston","Atlanta","Memphis","Charlotte", "Chicago")
+
+ClimateCityUsa <- data_city[data_city$Country=="United States",]
+ClimateCityUsa$dt <-as.Date(ClimateCityUsa$dt)
+ClimateCityUsa$Year <- format(ClimateCityUsa$dt,"%Y")
+ClimateCityUsa$Month <- format(ClimateCityUsa$dt,"%m")
+
+
+  ClimateCityUsa %>% filter(City %in% Major_Cities) %>% group_by(City,Year) %>% summarise(avg_temp= mean(AverageTemperature)) %>% ggplot(aes(Year,avg_temp,color=avg_temp)) + 
+    geom_point() +
+  scale_x_discrete( breaks = c(1750,2013))+ scale_color_viridis(option="B")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.spacing = unit(0.6, "lines"),legend.position = "top",
+        legend.text=element_text(size=8),
+        panel.grid.major.y = element_blank(),panel.grid.minor.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.background = element_rect(fill = "#EFF2F4"),
+        legend.key.height = unit(10, "pt"),
+        legend.key.width = unit(70, "pt"))+
+        ggtitle("Temperature Change over the last two centuries",subtitle = "USA Cities")+
+         ylab("Temperature")+labs(color="Temperature")+
+facet_grid(~City )
+```
+
+
+**From the graph it is clearly evident that all the major cities have experienced a significant rise in temperatures over the years. All the cities have experienced an average increase of 2 degree Celsius from the 1800's till the 2000's. The cities present in the northern part of USA have experienced more rise in temperature compared to the cities in the southern part of USA.**
+
+## Global Warming Summary- United States
+
+
+
+**USA is a temperate country and it is far away from the equator hence it gets warm during the summer months and has cold winter months. From the above data and the graphs it can be clearly seen that USA is experiencing an increase in average temperature from the early 1800's. There has been a steady increase in temperature from the early 1800's and the rise in temperatures is expected to increase over the coming years. We can see that there has been a 2 degree increase in the average temperature in India. The temperatures in each month have increased making the summers even more hot. There has been a rise in the minimum, maximum and average temperatures  also. All the major cities have also seen a similar trend. The northern part of USA has been experincing a bigger change in temperature compared to the southern part of USA.**
+
+
+# Conclusion
+
+
+**Go plant some trees!!**
+
