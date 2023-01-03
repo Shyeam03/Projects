@@ -1,0 +1,64 @@
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(cowplot)
+library(olsrr)
+library(readr) 
+
+library(pscl)
+library(lmtest)
+library(ipred)
+library(survival)
+library(ResourceSelection)
+library(survey)
+library(lmtest)
+library(pROC)
+library(DescTools)
+```
+
+```{r}
+data = read.csv('netflix_titles.csv', stringsAsFactors = F)
+head(data) #allows you to check the data, first few entries 
+summary(data) #produce result summaries of the results of various model fitting functions.
+dim(data) #the dimension (e.g. the number of columns and rows) of a matrix, array or data frame. 
+str(data) 
+
+data$country <- as.character(data$country)
+data$type <- as.integer(data$type=="TV Show")
+str(data)
+
+library(tm)
+corpus <- Corpus(VectorSource(data$country))
+
+corpus <- tm_map(corpus, tolower)
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, stemDocument)
+
+
+
+freq <- DocumentTermMatrix(corpus)
+freq
+
+freq <- removeSparseTerms(freq, 0.90)
+freq
+
+
+newcorpus <- as.data.frame(as.matrix(freq))
+colnames(newcorpus) <- make.names(colnames(newcorpus))
+newcorpus$type<- data$type
+```
+
+```{r}
+library(caTools)
+library(e1071)
+set.seed(1)
+split <- sample.split(newcorpus$type, SplitRatio = 0.7)
+train <- subset(newcorpus, split==TRUE)
+test <- subset(newcorpus, split==FALSE)
+naivetype <- naiveBayes(as.factor(type)~., data=train)
+predictnaivetype <- predict(naivetype, newdata = test, type="class")
+table(predictnaivetype, test$type)
+```
+

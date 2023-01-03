@@ -1,0 +1,107 @@
+```{r}
+# Reading in Data
+
+movie <- read.csv("movie.csv")
+ratings <-  read.csv("rating.csv")
+```
+
+```{r}
+library(tidyverse)
+movie <- as.tibble(movie)
+ratings <- as.tibble(ratings)
+```
+
+```{r}
+# Final Merged Dataset
+
+dataset <- merge(ratings, movie, by = "movieId")
+dataset <- dataset[,-c(1,4)]
+dataset
+```
+
+```{r}
+# Cleaning the dataset
+
+d <- dataset %>% select(userId, rating , title)
+d <- d %>% filter(rating > 4) %>% arrange(userId)
+d <- d %>% select(userId,title) %>% arrange(userId)
+head(d)
+```
+
+
+```{r}
+# Writing Merged file to CSV
+
+write.csv(d, file="testARM1.csv")
+```
+
+```{r}
+library(arules)
+# Converting data into transactions
+
+testARM <- read.transactions("testARM1.csv", rm.duplicates = FALSE , format = "single" ,  sep=",", cols=c("userId","title"), header=TRUE)
+inspect(testARM[1:3])
+```
+
+```{r}
+# Using Apriori Algorithm
+library(arulesViz)
+a <- arules::apriori(data = testARM, parameter = list(support =0.1, confidence = 0.1, minlen=2))
+head(a)
+```
+
+
+```{r}
+# Top 15 rules for support
+
+rules.by.supp<-sort(a, by="support", decreasing=TRUE)
+inspect(rules.by.supp[1:15])
+```
+
+
+```{r}
+# Top 15 rules for Confidence
+
+rules.by.conf <- sort(a, by="confidence", decreasing = TRUE)
+inspect(rules.by.conf[1:15])
+```
+
+
+```{r}
+# Top 15 rules for lift
+rules.by.lift <- sort(a, by="lift", decreasing = TRUE)
+inspect(rules.by.lift[1:15])
+```
+
+
+```{r}
+plot(a, method ="scatterplot", engine='default')
+```
+
+
+```{r}
+# Visualizing Associations
+
+itemFrequencyPlot(testARM, topN=10, type="absolute")
+
+```
+
+```{r}
+
+plotlift <- head(sort(rules.by.conf),10)
+plot(plotlift)
+
+
+```
+
+
+```{r}
+plot(plotlift, method="graph", engine="htmlwidget")
+```
+
+```{r}
+plot(rules.by.lift, method = "graph", measure = "lift", shading = "lift", engine = "interactive",
+data = NULL, control = NULL)
+
+```
+

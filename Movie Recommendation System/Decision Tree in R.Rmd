@@ -1,0 +1,61 @@
+```{r}
+movies=read.csv("Movie_classification.csv")
+```
+
+```{r}
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+drop <- c("Time_taken")
+movies[ , !(names(movies) %in% drop)]
+```
+
+```{r}
+#changing Genre to numbers
+Genre_tags <- c(0,1,2,3)
+movies <-  movies %>% mutate(Genre = case_when(
+  movies$Genre == "Thriller" ~ Genre_tags[1],
+  movies$Genre == "Drama" ~ Genre_tags[2],
+  movies$Genre == "Comedy" ~ Genre_tags[3],
+  movies$Genre == "Action" ~ Genre_tags[4]
+))
+
+```
+
+```{r}
+movies <- movies %>% mutate(X3D_available = case_when(
+   movies$X3D_available == "YES" ~ Genre_tags[2],
+   movies$X3D_available == "NO" ~ Genre_tags[1]
+))
+```
+
+
+```{r}
+
+library(datasets)
+library(caTools)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(magrittr)
+#Splitting the dataset
+sample_data = sample.split(movies, SplitRatio = 0.8)
+train_data <- subset(movies, sample_data == TRUE)
+test_data <- subset(movies, sample_data == FALSE)
+```
+
+```{r}
+model <- rpart(Collection ~., data=train_data,method="anova")
+rpart.plot(model)
+```
+```{r}
+predict_unseen <-predict(model, test_data)
+```
+
+```{r}
+#Confusion Matrix
+table_mat <- table(test_data$Collection, predict_unseen)
+table_mat
+```
+
+
